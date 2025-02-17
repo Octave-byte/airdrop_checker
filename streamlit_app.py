@@ -3,7 +3,7 @@ import pandas as pd
 import streamlit as st
 
 def fetch_airdrop_data(wallet_address):
-    url = f"https://api.octavionotpunk.com/airdrop?address={wallet_address}"
+    url = f"https://airdropcheck-octavionotpunk.pythonanywhere.com/get_alloc?wallet_address={wallet_address}"
     response = requests.get(url)
     
     if response.status_code == 200:
@@ -18,19 +18,17 @@ def main():
     if st.button("Verify"):
         data = fetch_airdrop_data(wallet_address)
         
-        if data:
-            formatted_data = []
-            for key, value in data.items():
-                formatted_data.append({
-                    "Project": key,
-                    "Amount": value["amount"],
-                    "Link": f'[Claim Here]({value["link"]})'
-                })
-            
-            df = pd.DataFrame(formatted_data)
-            st.write(df.to_html(escape=False), unsafe_allow_html=True)
+        if data and data.get("status") == "success":
+            allocations = data.get("allocation", [])
+            if allocations:
+                df = pd.DataFrame(allocations)
+                df.rename(columns={"claimableTokens": "Amount", "project": "Project"}, inplace=True)
+                st.write(df)
+            else:
+                st.warning("No airdrops available for this address.")
         else:
             st.error("Failed to fetch data or invalid address.")
 
 if __name__ == "__main__":
     main()
+
